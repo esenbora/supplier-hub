@@ -1,6 +1,6 @@
 {
   "name": "supplier-hub",
-  "version": "0.1.0",
+  "version": "1.0.0-flowiqa",
   "description": "Central order aggregation hub for multi-store Etsy supplier",
   "main": "server.js",
   "scripts": {

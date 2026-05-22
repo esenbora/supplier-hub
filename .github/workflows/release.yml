@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create release package
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE="supplier-hub-${VERSION}"
+          rm -rf release-pack "${PACKAGE}.tar.gz"
+          mkdir -p "release-pack/${PACKAGE}"
+
+          cp server.js "release-pack/${PACKAGE}/server.js"
+          cp package.json "release-pack/${PACKAGE}/package.json"
+          cp package-lock.json "release-pack/${PACKAGE}/package-lock.json"
+          cp -R lib "release-pack/${PACKAGE}/lib"
+          cp -R routes "release-pack/${PACKAGE}/routes"
+          cp -R public "release-pack/${PACKAGE}/public"
+          cp -R scripts "release-pack/${PACKAGE}/scripts"
+          cp .env.example "release-pack/${PACKAGE}/.env.example" || true
+          cp install.sh "release-pack/${PACKAGE}/install.sh" || true
+          cp install.ps1 "release-pack/${PACKAGE}/install.ps1" || true
+          cp setup.sh "release-pack/${PACKAGE}/setup.sh" || true
+          cp setup.bat "release-pack/${PACKAGE}/setup.bat" || true
+          cp launch.sh "release-pack/${PACKAGE}/launch.sh" || true
+          cp launch.bat "release-pack/${PACKAGE}/launch.bat" || true
+
+          tar -czf "${PACKAGE}.tar.gz" -C release-pack "${PACKAGE}"
+          echo "OK: ${PACKAGE}.tar.gz ($(wc -c < ${PACKAGE}.tar.gz) bytes)"
+
+      - name: Upload release tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARBALL="supplier-hub-${VERSION}.tar.gz"
+          gh release create "${GITHUB_REF_NAME}" "${TARBALL}" --generate-notes || \
+            gh release upload "${GITHUB_REF_NAME}" "${TARBALL}" --clobber
